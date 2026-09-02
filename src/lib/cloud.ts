@@ -30,6 +30,7 @@ export async function rpc<T=unknown>(name:string,args:Record<string,unknown>){re
 export async function select<T=unknown>(table:string,query="select=*"){return request(`/rest/v1/${table}?${query}`,{headers:{Accept:"application/json"}}) as Promise<T>}
 export async function update(table:string,query:string,values:Record<string,unknown>){return request(`/rest/v1/${table}?${query}`,{method:"PATCH",body:JSON.stringify(values),headers:{Prefer:"return=representation"}})}
 export async function insert<T=unknown>(table:string,values:Record<string,unknown>){return request(`/rest/v1/${table}`,{method:"POST",body:JSON.stringify(values),headers:{Prefer:"return=representation"}}) as Promise<T>}
+export async function upsert<T=unknown>(table:string,values:Record<string,unknown>,onConflict:string){return request(`/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`,{method:"POST",body:JSON.stringify(values),headers:{Prefer:"resolution=merge-duplicates,return=representation"}}) as Promise<T>}
 export async function uploadPrivateAudio(path:string,file:Blob){
   const session=getSession();if(!session)throw new Error("Sign in before uploading audio.");
   const response=await fetch(`${url}/storage/v1/object/qaida-audio/${path}`,{method:"POST",headers:{apikey:key||"",Authorization:`Bearer ${session.access_token}`,"Content-Type":file.type||"audio/webm","x-upsert":"false"},body:file});
