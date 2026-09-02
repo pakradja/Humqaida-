@@ -14,6 +14,16 @@ async function request(path:string,init:RequestInit={},auth=true){
 }
 export async function signUp(email:string,password:string){const s=await request("/auth/v1/signup",{method:"POST",body:JSON.stringify({email,password})},false);if(s.access_token)saveSession(s);return s}
 export async function signIn(email:string,password:string){const s=await request("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})},false);saveSession(s);return s as CloudSession}
+export async function requestPasswordReset(email:string){return request(`/auth/v1/recover?redirect_to=${encodeURIComponent(location.origin)}`,{method:"POST",body:JSON.stringify({email})},false)}
+export async function consumeAuthCallback(){
+  const params=new URLSearchParams(location.hash.replace(/^#/,""));
+  if(params.get("type")!=="recovery"||!params.get("access_token"))return false;
+  const access_token=params.get("access_token")!,refresh_token=params.get("refresh_token")||"";
+  const response=await fetch(`${url}/auth/v1/user`,{headers:{apikey:key||"",Authorization:`Bearer ${access_token}`}});
+  const user=await response.json();if(!response.ok)throw new Error(user?.message||"Password-reset link is invalid or expired.");
+  saveSession({access_token,refresh_token,user});history.replaceState(null,"",location.pathname+location.search);return true;
+}
+export async function updatePassword(password:string){return request("/auth/v1/user",{method:"PUT",body:JSON.stringify({password})})}
 export async function signInChild(){const s=await request("/auth/v1/signup",{method:"POST",body:JSON.stringify({})},false);saveSession(s);return s as CloudSession}
 export async function signOut(){try{await request("/auth/v1/logout",{method:"POST"})}finally{saveSession(null)}}
 export async function rpc<T=unknown>(name:string,args:Record<string,unknown>){return request(`/rest/v1/rpc/${name}`,{method:"POST",body:JSON.stringify(args),headers:{Prefer:"return=representation"}}) as Promise<T>}
